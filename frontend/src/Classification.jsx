@@ -22,8 +22,7 @@ const CATEGORIES = {
   REVIEW: "Needs Review",
 };
 
-// Internal category mapping.
-// Kept for compatibility with the existing Data Morphing page.
+// Map ML categories to the categories used by the Data Morphing page.
 const mapCategory = (category) => {
   const value = String(category || "").toLowerCase().trim();
 
@@ -52,7 +51,7 @@ const mapCategory = (category) => {
   return CATEGORIES.REVIEW;
 };
 
-// Assign an appropriate privacy action to each ML category.
+// Assign a privacy action to each ML category.
 const getPrivacyAction = (category) => {
   const value = String(category || "").toLowerCase().trim();
 
@@ -104,6 +103,7 @@ const getActionClass = (action) => {
   }
 };
 
+// Detect the data type of a column.
 const detectDataType = (values) => {
   const validValues = values
     .filter(
@@ -139,6 +139,7 @@ const detectDataType = (values) => {
   return "Text";
 };
 
+// Mask sample values before displaying them.
 const maskValue = (value) => {
   if (
     value === null ||
@@ -253,14 +254,6 @@ export default function Classification({
               )
             : 0;
 
-          let confidence = Number(
-            item.confidence ?? item.probability ?? 0
-          );
-
-          if (confidence > 0 && confidence <= 1) {
-            confidence *= 100;
-          }
-
           const internalCategory = mapCategory(rawCategory);
 
           return {
@@ -273,10 +266,8 @@ export default function Classification({
             subtype: rawCategory,
             mlCategory: rawCategory,
 
-            // New privacy action shown in the dashboard.
+            // Privacy action shown in the dashboard.
             privacyAction: getPrivacyAction(rawCategory),
-
-            confidence: Number(confidence.toFixed(2)),
 
             evidence:
               item.evidence ||
@@ -339,6 +330,7 @@ export default function Classification({
     (item) => item.category === CATEGORIES.REVIEW
   ).length;
 
+  // Search and filter classification results.
   const filteredResults = useMemo(() => {
     return classification.filter((item) => {
       const matchesSearch =
@@ -354,6 +346,7 @@ export default function Classification({
     });
   }, [classification, search, selectedFilter]);
 
+  // Display this when no dataset is uploaded.
   if (!dataset || !dataset.headers || dataset.headers.length === 0) {
     return (
       <div className="page-container">
@@ -391,6 +384,7 @@ export default function Classification({
         </div>
       </div>
 
+      {/* Uploaded dataset information */}
       <div className="panel classification-file-info">
         <div className="file-info-icon">
           <FileSpreadsheet size={25} />
@@ -411,6 +405,7 @@ export default function Classification({
         )}
       </div>
 
+      {/* Loading state */}
       {loading && (
         <div className="panel empty-state">
           <RefreshCw size={35} className="spin" />
@@ -421,6 +416,7 @@ export default function Classification({
         </div>
       )}
 
+      {/* Error state */}
       {error && (
         <div className="classification-note">
           <AlertTriangle size={19} />
@@ -428,8 +424,8 @@ export default function Classification({
             <strong>Classification failed</strong>
             <p>{error}</p>
             <p>
-              Make sure the Python backend is running at
-              http://127.0.0.1:8000.
+              Check your internet connection and ensure the Python
+              backend is available at {API_URL}.
             </p>
           </div>
         </div>
@@ -437,6 +433,7 @@ export default function Classification({
 
       {!loading && !error && classification.length > 0 && (
         <>
+          {/* Classification statistics */}
           <div className="stats-grid classification-stats">
             <div className="stat-card">
               <div className="stat-icon blue">
@@ -483,6 +480,7 @@ export default function Classification({
             </div>
           </div>
 
+          {/* Classification results table */}
           <div className="panel classification-results">
             <div className="panel-header">
               <div>
@@ -498,6 +496,7 @@ export default function Classification({
               </div>
             </div>
 
+            {/* Search and filter */}
             <div className="classification-controls">
               <div className="search-box">
                 <Search size={17} />
@@ -526,6 +525,7 @@ export default function Classification({
               </select>
             </div>
 
+            {/* Results table */}
             <div className="table-container">
               <table>
                 <thead>
@@ -535,7 +535,6 @@ export default function Classification({
                     <th>Sample Value</th>
                     <th>Privacy Action</th>
                     <th>ML Category</th>
-                    <th>Confidence</th>
                   </tr>
                 </thead>
 
@@ -566,29 +565,12 @@ export default function Classification({
                       </td>
 
                       <td>{item.mlCategory}</td>
-
-                      <td>
-                        <div className="confidence-cell">
-                          <strong>{item.confidence}%</strong>
-                          <div className="confidence-bar">
-                            <div
-                              className="confidence-fill"
-                              style={{
-                                width: `${Math.max(
-                                  0,
-                                  Math.min(100, item.confidence)
-                                )}%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </td>
                     </tr>
                   ))}
 
                   {filteredResults.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="no-results">
+                      <td colSpan="5" className="no-results">
                         No matching columns found.
                       </td>
                     </tr>
@@ -597,6 +579,7 @@ export default function Classification({
               </table>
             </div>
 
+            {/* ML explanation */}
             <div className="classification-evidence">
               <div className="evidence-heading">
                 <Info size={18} />
@@ -640,13 +623,13 @@ export default function Classification({
             </div>
           </div>
 
+          {/* Classification notice */}
           <div className="classification-note">
             <AlertTriangle size={19} />
             <div>
               <strong>Classification notice</strong>
               <p>
                 These results are generated by the trained Python ML model.
-                Confidence scores are model scores, not calibrated probabilities.
                 Unknown or uncertain categories should be reviewed by a user.
                 Classification alone does not guarantee medical-data
                 de-identification.
